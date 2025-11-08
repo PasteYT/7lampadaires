@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Quicksand:wght@700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Image Frame Tool with Analysis</title>
+  <style>
+    body { 
+      font-family: sans-serif; 
+      padding: 20px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 20px; 
+      background-color: #f0f0f0;
+    }
+    
+    #controls {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px 30px;
+    }
+
+    #feedback-controls {
+      grid-column: 1 / span 2; 
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+    
+    .rating-input-group {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+
+    .rating-input-group input[type="range"] {
+        width: 100%;
+    }
+
+    .rating-input-group > div {
+        flex-basis: 33%;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    h3 {
+      grid-column: 1 / span 2;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 5px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      color: #555;
+    }
+
+    #previews-container {
+        display: flex;
+        /* L'ordre des éléments HTML définit l'ordre maintenant: Image Initiale (Analyse) est le premier, Image Finale (Cadre) le second. */
+        gap: 20px;
+        width: 100%;
+    }
+    
+    .image-preview-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    #canvasContainer {
+        position: relative; 
+        display: inline-block;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    #blurredPreviewContainer {
+        position: relative; 
+        display: inline-block;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    #textOverlay {
+      position: absolute;
+      font-family: 'Bebas Neue', sans-serif; 
+      font-weight: 700; 
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center; 
+      justify-content: center; 
+      background-color: transparent; 
+      z-index: 10; 
+    }
+
+    #textOverlay .text-content-wrapper {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    
+    progress {
+        width: 100%;
+        height: 20px; 
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f3f3f3;
+        overflow: hidden;
+    }
+    
+    /* Styles pour la zone de feedback sur le BLURRED CANVAS */
+    #feedbackOverlayContent {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around; 
+        padding: 25px; 
+        box-sizing: border-box;
+        z-index: 5; 
+        color: white; 
+        text-shadow: 1px 1px 4px rgba(0,0,0,1); 
+        font-size: 1.2em; 
+        overflow: hidden; 
+    }
+
+    #rating-display-zone {
+        background-color: transparent; 
+        padding: 15px; 
+        border-radius: 5px;
+        margin-bottom: 25px; 
+    }
+    
+    #ratings-bar-container {
+        display: grid;
+        grid-template-columns: 1fr 50% auto; 
+        gap: 0 10px; 
+        align-items: center;
+        width: 100%; 
+    }
+    
+    #ratings-bar-container > div {
+        display: contents; 
+    }
+
+    #ratings-bar-container .rating-label {
+        font-size: 1.1em; 
+        font-weight: bold;
+        text-align: right; 
+    }
+    
+    #ratings-bar-container progress {
+        width: 100%; 
+        margin-bottom: 8px; 
+        background-color: rgba(255,255,255,0.3); 
+        border: 1px solid rgba(255,255,255,0.5);
+    }
+    
+    #ratings-bar-container progress::-webkit-progress-value {
+        background-color: #4CAF50; 
+    }
+
+    .note-finale {
+        font-size: 3em; 
+        font-weight: bold;
+        color: #28a745;
+        text-shadow: 1px 1px 5px rgba(0,0,0,0.8); 
+    }
+
+    .feedback-columns {
+        display: flex;
+        gap: 20px; 
+        flex: 1; 
+        min-height: 0; 
+        max-height: 45%; 
+    }
+
+    .feedback-area {
+        flex: 1;
+        background-color: transparent; 
+        padding: 15px; 
+        border: 1px solid rgba(255,255,255,0.6); 
+        border-radius: 5px;
+        overflow-y: auto; 
+        min-height: 0; 
+    }
+    
+    .feedback-area textarea {
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 100px; 
+    }
+
+    .feedback-area h4 {
+        margin-top: 0;
+        margin-bottom: 8px; 
+        font-size: 1.3em; 
+        color: white; 
+    }
+    .feedback-area ul {
+        list-style-type: disc;
+        padding-left: 25px; 
+        margin: 5px 0;
+        color: white;
+        font-size: 1em; 
+        word-wrap: break-word; 
+    }
+    
+    .feedback-area li {
+        margin-bottom: 5px; 
+        font-size: 1em; 
+    }
+
+    #textInput {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    #download-buttons-container {
+        grid-column: 1 / span 2;
+        display: flex;
+        justify-content: space-around;
+        gap: 20px;
+        margin-top: 20px;
+        border-top: 1px solid #ddd;
+        padding-top: 20px;
+    }
+    #download-buttons-container button {
+        flex: 1;
+        padding: 10px 20px;
+        font-size: 1.1em;
+        cursor: pointer;
+        border: none;
+        border-radius: 5px;
+        background-color: #007bff;
+        color: white;
+        transition: background-color 0.2s ease;
+    }
+    #download-buttons-container button:hover {
+        background-color: #0056b3;
+    }
+    
+  </style>
+</head>
+<body>
+<h1>🖼️ Générateur d'Image avec Cadre & Analyse</h1>
+
+<div id="controls">
+    
+    <h3>Contrôles du Cadre</h3>
+    
+    <div>
+        <label>Téléverser une image :</label>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+
+    <div id="download-buttons-container">
+        <button id="downloadBtnFinal">Télécharger l'Image Finale</button>
+        <button id="downloadBtnBlurred">Télécharger l'Image d'Analyse</button>
+    </div>
+    
+    <div>
+        <label>Largeur du cadre :</label> 
+        <input type="range" id="frameWidth" min="1" max="50" value="3" style="width: 100%;">
+    </div>
+    
+    <div>
+        <label>Centrage Cadre :</label> 
+        <input type="range" id="frameHeightRatio" min="0" max="50" value="0" style="width: 100%;">
+    </div>
+
+    <div id="frame-color-options">
+        <label>Couleur Début (Dégradé) :</label> 
+        <input type="color" id="frameColorStart" value="#f5f5ee" style="width: 100%;">
+    </div>
+    <div>
+        <label>Couleur Fin (Dégradé) :</label> 
+        <input type="color" id="frameColorEnd" value="#a0a099" style="width: 100%;">
+    </div>
+
+    <h3>Texte final (70% Largeur)</h3>
+    <div style="grid-column: 1 / span 2;">
+        <label>Texte à afficher :</label>
+        <textarea id="textInput" rows="3" placeholder="Saisissez votre message ici..."></textarea>
+    </div>
+    <div>
+        <label>Taille du texte :</label> 
+        <input type="range" id="fontSize" min="10" max="120" value="20" style="width: 100%;"> 
+    </div>
+    <div>
+        <label>Couleur du texte :</label> 
+        <input type="color" id="textColor" value="#ffffff" style="width: 100%;"> 
+    </div>
+    
+    <h3 id="feedback-controls">Notation & Feedback Image</h3>
+    <div style="grid-column: 1 / span 2;">
+        <p>Ajustez les notes sur 7 pour l'analyse de l'image :</p>
+        <div class="rating-input-group">
+            <div>
+                <label for="rating-lighting">Éclairage :</label>
+                <input type="range" id="rating-lighting" min="0" max="7" value="5" oninput="updateRatings()"> 
+            </div>
+            <div>
+                <label for="rating-beauty">Beauté :</label>
+                <input type="range" id="rating-beauty" min="0" max="7" value="6" oninput="updateRatings()">
+            </div>
+            <div>
+                <label for="rating-originality">Originalité :</label>
+                <input type="range" id="rating-originality" min="0" max="7" value="4" oninput="updateRatings()">
+            </div>
+        </div>
+        <div class="feedback-columns">
+            <div class="feedback-area">
+                <h4>On apprécie :</h4>
+                <textarea id="positivesInput" rows="3" placeholder="Ex:
+- Bon contraste
+- Couleurs vives
+- Composition intéressante
+- ..." oninput="updateFeedbackLists()"></textarea>
+            </div>
+            <div class="feedback-area">
+                <h4>On aime moins :</h4>
+                <textarea id="negativesInput" rows="3" placeholder="Ex:
+- Trop de bruit numérique
+- Manque de netteté
+- Composition faible
+- ..." oninput="updateFeedbackLists()"></textarea>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<div id="previews-container">
+    
+    <div class="image-preview-column">
+        <h2>Image Initiale (Analyse)</h2>
+        <div id="blurredPreviewContainer">
+            <canvas id="blurredCanvas"></canvas>
+            <div id="feedbackOverlayContent"> 
+                <div id="rating-display-zone">
+                    <p style="margin: 0; font-weight: bold;">Notes (sur 7) :</p>
+                    <div id="ratings-bar-container">
+                        </div>
+                    <div style="text-align: right; margin-top: 15px;">
+                        <span style="font-size: 1.3em; font-weight: bold;">Note Finale (Moyenne) : </span>
+                        <span id="finalScore" class="note-finale"></span>
+                    </div>
+                </div>
+                
+                <div class="feedback-columns">
+                    <div class="feedback-area">
+                        <h4>On apprécie :</h4>
+                        <ul id="positivesList" style="padding-left: 25px; margin: 5px 0;"></ul>
+                    </div>
+                    <div class="feedback-area">
+                        <h4>On aime moins :</h4>
+                        <ul id="negativesList" style="padding-left: 25px; margin: 5px 0;"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="image-preview-column">
+        <h2>Image Finale (Cadre)</h2>
+        <div id="canvasContainer">
+            <canvas id="canvas"></canvas>
+            <div id="textOverlay"></div> 
+        </div>
+    </div>
+</div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const textInput = document.getElementById('textInput');
+    const downloadBtnFinal = document.getElementById('downloadBtnFinal'); 
+    const downloadBtnBlurred = document.getElementById('downloadBtnBlurred'); 
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const textOverlay = document.getElementById('textOverlay');
+    const canvasContainer = document.getElementById('canvasContainer');
+    
+    const blurredCanvas = document.getElementById('blurredCanvas');
+    const blurredCtx = blurredCanvas.getContext('2d');
+    const blurredPreviewContainer = document.getElementById('blurredPreviewContainer');
+    
+    const finalScoreDisplay = document.getElementById('finalScore');
+    const ratingsBarContainer = document.getElementById('ratings-bar-container');
+    const positivesInput = document.getElementById('positivesInput');
+    const negativesInput = document.getElementById('negativesInput');
+    const positivesList = document.getElementById('positivesList');
+    const negativesList = document.getElementById('negativesList');
+    
+    const padding = 40;
+    const frameRadius = 30;
+
+    let img = new Image();
+
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => { 
+        img.src = e.target.result; 
+        img.onload = () => {
+            render(); 
+            drawBlurredPreview();
+        };
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function getFrameGradient(context, width, height) {
+        const startColor = document.getElementById('frameColorStart').value;
+        const endColor = document.getElementById('frameColorEnd').value;
+        
+        const gradient = context.createLinearGradient(0, 0, width, 0);
+        gradient.addColorStop(0, startColor);
+        gradient.addColorStop(1, endColor);
+        
+        return gradient;
+    }
+    
+    function getTextAreaDimensions() {
+        const dynamicTextAreaHeight = canvas.height * 0.20; 
+        const dynamicTextAreaWidth = canvas.width * 0.70;   
+        const textAreaX = (canvas.width - dynamicTextAreaWidth) / 2; 
+        const textAreaY = canvas.height - dynamicTextAreaHeight;     
+        const holeYCenter = textAreaY + dynamicTextAreaHeight / 2;
+        return { dynamicTextAreaHeight, dynamicTextAreaWidth, textAreaX, textAreaY, holeYCenter };
+    }
+
+    function drawBlurredPreview() {
+        if (!img.src) return;
+        
+        blurredCanvas.width = img.width;
+        blurredCanvas.height = img.height;
+        blurredPreviewContainer.style.width = img.width + 'px';
+        blurredPreviewContainer.style.height = img.height + 'px';
+
+        blurredCtx.clearRect(0, 0, blurredCanvas.width, blurredCanvas.height);
+        blurredCtx.filter = 'blur(10px)'; 
+        blurredCtx.drawImage(img, 0, 0);
+        blurredCtx.filter = 'none'; 
+
+        const gradient = getFrameGradient(blurredCtx, blurredCanvas.width, blurredCanvas.height);
+        
+        blurredCtx.globalAlpha = 0.5; 
+        blurredCtx.fillStyle = gradient;
+        blurredCtx.fillRect(0, 0, blurredCanvas.width, blurredCanvas.height);
+        blurredCtx.globalAlpha = 1.0; 
+        
+    }
+
+    function drawTextOnCanvas() {
+        const { dynamicTextAreaWidth, textAreaX, holeYCenter } = getTextAreaDimensions();
+        const text = textInput.value || "";
+        const fontSize = parseInt(document.getElementById('fontSize').value);
+        const textColor = document.getElementById('textColor').value; 
+        
+        ctx.font = `${fontSize}px 'Bebas Neue', sans-serif`; 
+        ctx.fillStyle = textColor; 
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const lines = wrapText(ctx, text, dynamicTextAreaWidth * 0.9); 
+        const lineHeight = fontSize * 1.2;
+        const totalTextHeight = lines.length * lineHeight;
+        
+        let startY = holeYCenter - totalTextHeight / 2 + lineHeight / 2; 
+
+        lines.forEach(line => {
+            ctx.fillText(line, textAreaX + (dynamicTextAreaWidth / 2), startY); 
+            startY += lineHeight;
+        });
+    }
+    
+    function updateHtmlOverlay() {
+        const { dynamicTextAreaHeight, dynamicTextAreaWidth, textAreaX, textAreaY } = getTextAreaDimensions();
+        const text = textInput.value || "";
+        const fontSize = parseInt(document.getElementById('fontSize').value);
+        const textColor = document.getElementById('textColor').value; 
+        
+        textOverlay.style.width = dynamicTextAreaWidth + 'px';
+        textOverlay.style.height = dynamicTextAreaHeight + 'px';
+        textOverlay.style.left = textAreaX + 'px';
+        textOverlay.style.bottom = (canvas.height - textAreaY - dynamicTextAreaHeight) + 'px'; 
+        textOverlay.style.fontSize = fontSize + 'px';
+        textOverlay.style.color = textColor;
+
+        const charWidthEstimation = fontSize * 0.6; 
+        const maxCharsPerLine = Math.floor((dynamicTextAreaWidth * 0.9) / charWidthEstimation); 
+        
+        const lines = text.split(/\s+/).reduce((acc, word) => {
+            let lastLine = acc[acc.length - 1];
+            if (!lastLine || (lastLine + ' ' + word).length > maxCharsPerLine) {
+                acc.push(word);
+            } else {
+                acc[acc.length - 1] += ' ' + word;
+            }
+            return acc;
+        }, []);
+
+        let htmlContent = `<div class="text-content-wrapper">`;
+        lines.forEach(line => {
+            htmlContent += `<div style="line-height: 1.2;">${line}</div>`;
+        });
+        htmlContent += `</div>`;
+        
+        textOverlay.innerHTML = htmlContent;
+    }
+
+    function render() {
+      if (!img.src) return;
+      
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      canvasContainer.style.width = canvas.width + 'px';
+      canvasContainer.style.height = canvas.height + 'px';
+
+      const frameWidth = parseInt(document.getElementById('frameWidth').value);
+      
+      ctx.lineWidth = frameWidth;
+      ctx.strokeStyle = getFrameGradient(ctx, canvas.width, canvas.height);
+      
+      const frameRatio = 1 - (parseInt(document.getElementById('frameHeightRatio').value) / 100); 
+      
+      const x = padding;
+      const y = padding;
+      const frameW = canvas.width - padding * 2;
+      let frameH = (canvas.height - padding * 2) * frameRatio;
+      
+      updateHtmlOverlay();
+
+      const { dynamicTextAreaWidth, textAreaX } = getTextAreaDimensions();
+      const frameLineY = y + frameH; 
+      const holeMargin = frameWidth * 2; 
+      const holeStart = textAreaX - holeMargin;
+      const holeEnd = textAreaX + dynamicTextAreaWidth + holeMargin; 
+      
+      ctx.beginPath();
+      ctx.moveTo(x, y + frameRadius);
+      ctx.arcTo(x, y, x + frameRadius, y, frameRadius); 
+      ctx.lineTo(x + frameW - frameRadius, y);
+      ctx.arcTo(x + frameW, y, x + frameW, y + frameRadius, frameRadius); 
+      ctx.lineTo(x + frameW, frameLineY - frameRadius); 
+      ctx.arcTo(x + frameW, frameLineY, holeEnd, frameLineY, frameRadius); 
+      
+      ctx.moveTo(x + frameRadius, frameLineY); 
+      ctx.lineTo(holeStart, frameLineY); 
+      
+      ctx.moveTo(holeEnd, frameLineY); 
+      ctx.lineTo(x + frameW - frameRadius, frameLineY); 
+
+      ctx.moveTo(x + frameRadius, frameLineY);
+      ctx.arcTo(x, frameLineY, x, frameLineY - frameRadius, frameRadius);
+      ctx.lineTo(x, y + frameRadius); 
+
+      ctx.stroke();
+    }
+
+    function updateRatings() {
+        const lighting = parseInt(document.getElementById('rating-lighting').value);
+        const beauty = parseInt(document.getElementById('rating-beauty').value);
+        const originality = parseInt(document.getElementById('rating-originality').value);
+        
+        const ratings = [
+            { label: 'Éclairage', value: lighting },
+            { label: 'Beauté', value: beauty },
+            { label: 'Originalité', value: originality }
+        ];
+
+        ratingsBarContainer.innerHTML = ratings.map(r => `
+            <span class="rating-label">${r.label} :</span>
+            <progress max="7" value="${r.value}"></progress>
+            <span style="font-size: 1.1em; font-weight: bold;">${r.value}/7</span>
+        `).join('');
+
+        const average = (lighting + beauty + originality) / 3;
+        const finalScore = Math.max(0, Math.min(7, Math.round(average))); 
+        finalScoreDisplay.textContent = finalScore;
+    }
+
+    function updateFeedbackLists() {
+        let positives = positivesInput.value.split('\n').filter(p => p.trim() !== '');
+        positivesList.innerHTML = positives.map(p => `<li>${p.replace(/^[0-9.]+\s?/, '')}</li>`).join('');
+
+        let negatives = negativesInput.value.split('\n').filter(n => n.trim() !== '');
+        negativesList.innerHTML = negatives.map(n => `<li>${n.replace(/^[0-9.]+\s?/, '')}</li>`).join('');
+    }
+
+    downloadBtnBlurred.addEventListener('click', () => {
+        if (!img.src) {
+            alert("Veuillez d'abord téléverser une image.");
+            return;
+        }
+        drawBlurredPreview(); 
+        const link = document.createElement('a');
+        link.download = 'image_analyse_floue.png';
+        link.href = blurredCanvas.toDataURL();
+        link.click();
+    });
+
+    downloadBtnFinal.addEventListener('click', () => {
+        if (!img.src) {
+            alert("Veuillez d'abord téléverser une image.");
+            return;
+        }
+
+        textOverlay.style.visibility = 'hidden'; 
+        render(); 
+        drawTextOnCanvas(); 
+        
+        const link = document.createElement('a');
+        link.download = 'image_cadree_finale.png';
+        link.href = canvas.toDataURL();
+        link.click();
+        
+        textOverlay.style.visibility = 'visible'; 
+    });
+
+
+    textInput.addEventListener('input', render);
+    document.getElementById('fontSize').addEventListener('input', render);
+    document.getElementById('frameWidth').addEventListener('input', () => {
+        render();
+        drawBlurredPreview(); 
+    });
+    document.getElementById('textColor').addEventListener('input', render);
+    document.getElementById('frameColorStart').addEventListener('input', () => {
+        render();
+        drawBlurredPreview(); 
+    });
+    document.getElementById('frameColorEnd').addEventListener('input', () => {
+        render();
+        drawBlurredPreview(); 
+    });
+    document.getElementById('frameHeightRatio').addEventListener('input', render); 
+    
+    document.getElementById('rating-lighting').addEventListener('input', updateRatings);
+    document.getElementById('rating-beauty').addEventListener('input', updateRatings);
+    document.getElementById('rating-originality').addEventListener('input', updateRatings);
+    
+    function wrapText(ctx, text, maxWidth) {
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = '';
+      ctx.font = `${parseInt(document.getElementById('fontSize').value)}px 'Bebas Neue', sans-serif`;
+      
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const testLine = currentLine === '' ? word : currentLine + ' ' + word;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && currentLine !== '') {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if(currentLine !== '') lines.push(currentLine);
+      return lines;
+    }
+    
+    // Initialisation
+    updateRatings();
+    updateFeedbackLists();
+
+  </script>
+</body>
+</html>
