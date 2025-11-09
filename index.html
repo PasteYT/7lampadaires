@@ -305,7 +305,7 @@
         <input type="color" id="frameColorEnd" value="#a0a099" style="width: 100%;">
     </div>
 
-    <h3>Texte final (80% Largeur)</h3>
+    <h3>Texte final (70% Largeur)</h3>
     <div style="grid-column: 1 / span 2;">
         <label>Texte à afficher :</label>
         <textarea id="textInput" rows="3" placeholder="Saisissez votre message ici..."></textarea>
@@ -454,7 +454,7 @@
     
     function getTextAreaDimensions() {
         const dynamicTextAreaHeight = canvas.height * 0.20; 
-        const dynamicTextAreaWidth = canvas.width * 0.80;   
+        const dynamicTextAreaWidth = canvas.width * 0.70;   
         const textAreaX = (canvas.width - dynamicTextAreaWidth) / 2; 
         const textAreaY = canvas.height - dynamicTextAreaHeight;     
         const holeYCenter = textAreaY + dynamicTextAreaHeight / 2;
