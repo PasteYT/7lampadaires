@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Quicksand:wght@700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Quicksand:wght=700&display=swap" rel="stylesheet">
   <meta charset="UTF-8">
   <title>Image Frame Tool with Analysis</title>
   <style>
@@ -62,7 +63,6 @@
 
     #previews-container {
         display: flex;
-        /* L'ordre des éléments HTML définit l'ordre maintenant: Image Initiale (Analyse) est le premier, Image Finale (Cadre) le second. */
         gap: 20px;
         width: 100%;
     }
@@ -112,16 +112,24 @@
         box-sizing: border-box;
     }
     
-    progress {
-        width: 100%;
+    .progress-bar-container {
         height: 20px; 
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        background-color: #f3f3f3;
-        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end; 
+        padding: 0; 
+        width: 100%; 
+    }
+
+    .progress-bar-container span {
+        white-space: nowrap; 
+        /* Taille des points augmentée */
+        font-size: 2.5em; 
+        line-height: 1; 
+        margin-right: 2px; 
+        padding: 0;
     }
     
-    /* Styles pour la zone de feedback sur le BLURRED CANVAS */
     #feedbackOverlayContent {
         position: absolute;
         top: 0;
@@ -138,9 +146,15 @@
         text-shadow: 1px 1px 4px rgba(0,0,0,1); 
         font-size: 1.2em; 
         overflow: hidden; 
+        /* 🚨 Annulation du décalage: Aligner le contenu à gauche */
+        align-items: flex-start; 
     }
 
     #rating-display-zone {
+        /* 🚨 Annulation du décalage: Rétablissement des valeurs par défaut */
+        width: 100%; 
+        margin-left: 0; 
+        
         background-color: transparent; 
         padding: 15px; 
         border-radius: 5px;
@@ -149,9 +163,9 @@
     
     #ratings-bar-container {
         display: grid;
-        grid-template-columns: 1fr 50% auto; 
-        gap: 0 10px; 
-        align-items: center;
+        grid-template-columns: auto 1fr; 
+        gap: 0 15px; 
+        align-items: center; 
         width: 100%; 
     }
     
@@ -160,26 +174,17 @@
     }
 
     #ratings-bar-container .rating-label {
-        font-size: 1.1em; 
+        /* Taille du texte augmentée */
+        font-size: 1.4em; 
         font-weight: bold;
         text-align: right; 
     }
     
-    #ratings-bar-container progress {
-        width: 100%; 
-        margin-bottom: 8px; 
-        background-color: rgba(255,255,255,0.3); 
-        border: 1px solid rgba(255,255,255,0.5);
-    }
-    
-    #ratings-bar-container progress::-webkit-progress-value {
-        background-color: #4CAF50; 
-    }
-
     .note-finale {
-        font-size: 3em; 
+        /* Taille du texte augmentée */
+        font-size: 4em; 
         font-weight: bold;
-        color: #28a745;
+        color: #28a745; 
         text-shadow: 1px 1px 5px rgba(0,0,0,0.8); 
     }
 
@@ -189,8 +194,11 @@
         flex: 1; 
         min-height: 0; 
         max-height: 45%; 
+        /* 🚨 Annulation du décalage: Rétablissement des valeurs par défaut */
+        width: 100%; 
+        margin-left: 0; 
     }
-
+    
     .feedback-area {
         flex: 1;
         background-color: transparent; 
@@ -255,7 +263,10 @@
     #download-buttons-container button:hover {
         background-color: #0056b3;
     }
-    
+
+    #ratings-bar-container{
+        margin-left: 50%;
+    }
   </style>
 </head>
 <body>
@@ -294,7 +305,7 @@
         <input type="color" id="frameColorEnd" value="#a0a099" style="width: 100%;">
     </div>
 
-    <h3>Texte final (70% Largeur)</h3>
+    <h3>Texte final (80% Largeur)</h3>
     <div style="grid-column: 1 / span 2;">
         <label>Texte à afficher :</label>
         <textarea id="textInput" rows="3" placeholder="Saisissez votre message ici..."></textarea>
@@ -327,7 +338,7 @@
         </div>
         <div class="feedback-columns">
             <div class="feedback-area">
-                <h4>On apprécie :</h4>
+                <h4>Points Positifs :</h4>
                 <textarea id="positivesInput" rows="3" placeholder="Ex:
 - Bon contraste
 - Couleurs vives
@@ -335,7 +346,7 @@
 - ..." oninput="updateFeedbackLists()"></textarea>
             </div>
             <div class="feedback-area">
-                <h4>On aime moins :</h4>
+                <h4>Points Négatifs :</h4>
                 <textarea id="negativesInput" rows="3" placeholder="Ex:
 - Trop de bruit numérique
 - Manque de netteté
@@ -354,8 +365,9 @@
         <div id="blurredPreviewContainer">
             <canvas id="blurredCanvas"></canvas>
             <div id="feedbackOverlayContent"> 
+                
                 <div id="rating-display-zone">
-                    <p style="margin: 0; font-weight: bold;">Notes (sur 7) :</p>
+                    <p style="margin: 0; font-weight: bold; font-size: 1.5em;">Notes (sur 7) :</p>
                     <div id="ratings-bar-container">
                         </div>
                     <div style="text-align: right; margin-top: 15px;">
@@ -363,14 +375,14 @@
                         <span id="finalScore" class="note-finale"></span>
                     </div>
                 </div>
-                
-                <div class="feedback-columns">
+
+                <div class="feedback-columns"> 
                     <div class="feedback-area">
-                        <h4>On apprécie :</h4>
+                        <h4>Points Positifs :</h4>
                         <ul id="positivesList" style="padding-left: 25px; margin: 5px 0;"></ul>
                     </div>
                     <div class="feedback-area">
-                        <h4>On aime moins :</h4>
+                        <h4>Points Négatifs :</h4>
                         <ul id="negativesList" style="padding-left: 25px; margin: 5px 0;"></ul>
                     </div>
                 </div>
@@ -422,6 +434,8 @@
         img.onload = () => {
             render(); 
             drawBlurredPreview();
+            updateRatings(); 
+            updateFeedbackLists();
         };
       };
       reader.readAsDataURL(file);
@@ -440,7 +454,7 @@
     
     function getTextAreaDimensions() {
         const dynamicTextAreaHeight = canvas.height * 0.20; 
-        const dynamicTextAreaWidth = canvas.width * 0.70;   
+        const dynamicTextAreaWidth = canvas.width * 0.80;   
         const textAreaX = (canvas.width - dynamicTextAreaWidth) / 2; 
         const textAreaY = canvas.height - dynamicTextAreaHeight;     
         const holeYCenter = textAreaY + dynamicTextAreaHeight / 2;
@@ -501,7 +515,7 @@
         textOverlay.style.width = dynamicTextAreaWidth + 'px';
         textOverlay.style.height = dynamicTextAreaHeight + 'px';
         textOverlay.style.left = textAreaX + 'px';
-        textOverlay.style.bottom = (canvas.height - textAreaY - dynamicTextAreaHeight) + 'px'; 
+        textOverlay.style.bottom = (canvas.height - (textAreaY + dynamicTextAreaHeight)) + 'px'; 
         textOverlay.style.fontSize = fontSize + 'px';
         textOverlay.style.color = textColor;
 
@@ -578,6 +592,7 @@
       ctx.stroke();
     }
 
+    // Rendu par points (•)
     function updateRatings() {
         const lighting = parseInt(document.getElementById('rating-lighting').value);
         const beauty = parseInt(document.getElementById('rating-beauty').value);
@@ -589,11 +604,16 @@
             { label: 'Originalité', value: originality }
         ];
 
-        ratingsBarContainer.innerHTML = ratings.map(r => `
-            <span class="rating-label">${r.label} :</span>
-            <progress max="7" value="${r.value}"></progress>
-            <span style="font-size: 1.1em; font-weight: bold;">${r.value}/7</span>
-        `).join('');
+        ratingsBarContainer.innerHTML = ratings.map(r => {
+            const filledPoints = '•'.repeat(r.value);
+
+            return `
+                <span class="rating-label">${r.label} :</span>
+                <div class="progress-bar-container"> 
+                    <span style="color: #4CAF50;">${filledPoints}</span>
+                    </div>
+            `;
+        }).join('');
 
         const average = (lighting + beauty + originality) / 3;
         const finalScore = Math.max(0, Math.min(7, Math.round(average))); 
@@ -607,19 +627,30 @@
         let negatives = negativesInput.value.split('\n').filter(n => n.trim() !== '');
         negativesList.innerHTML = negatives.map(n => `<li>${n.replace(/^[0-9.]+\s?/, '')}</li>`).join('');
     }
-
+    
     downloadBtnBlurred.addEventListener('click', () => {
         if (!img.src) {
             alert("Veuillez d'abord téléverser une image.");
             return;
         }
+        
         drawBlurredPreview(); 
-        const link = document.createElement('a');
-        link.download = 'image_analyse_floue.png';
-        link.href = blurredCanvas.toDataURL();
-        link.click();
+        
+        setTimeout(() => {
+            html2canvas(blurredPreviewContainer, { 
+                allowTaint: true, 
+                useCORS: true, 
+                backgroundColor: null, 
+                scale: 2 
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'image_analyse_floue_conforme.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }, 50); 
     });
-
+    
     downloadBtnFinal.addEventListener('click', () => {
         if (!img.src) {
             alert("Veuillez d'abord téléverser une image.");
@@ -659,12 +690,14 @@
     document.getElementById('rating-lighting').addEventListener('input', updateRatings);
     document.getElementById('rating-beauty').addEventListener('input', updateRatings);
     document.getElementById('rating-originality').addEventListener('input', updateRatings);
+    document.getElementById('positivesInput').addEventListener('input', updateFeedbackLists);
+    document.getElementById('negativesInput').addEventListener('input', updateFeedbackLists);
+
     
     function wrapText(ctx, text, maxWidth) {
       const words = text.split(' ');
       const lines = [];
       let currentLine = '';
-      ctx.font = `${parseInt(document.getElementById('fontSize').value)}px 'Bebas Neue', sans-serif`;
       
       for (let i = 0; i < words.length; i++) {
         const word = words[i];
